@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The HIFI Harmonic Frequencizer 5000</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles for the vintage hi-fi aesthetic */
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .gold-text {
+            color: #D4AF37;
+        }
+
+        .gold-border {
+            border-color: #D4AF37;
+        }
+        
+        .focus-gold-ring:focus {
+            --tw-ring-color: #D4AF37;
+        }
+
+        /* 3D Knob Styling */
+        .knob-body {
+            box-shadow: 
+                inset 0 2px 4px rgba(0,0,0,0.6), 
+                inset 0 -2px 4px rgba(255,255,255,0.2),
+                0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        /* Knob Pointer Glow Effect */
+        .knob-pointer {
+            filter: drop-shadow(0 0 3px #D4AF37);
+            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        
+        /* Styling for the tick marks around the knob */
+        .tick {
+            position: absolute;
+            background-color: #a0aec0; /* Tailwind gray-500 */
+        }
+
+        .tick.prominent {
+            background-color: #e2e8f0; /* Tailwind gray-300 */
+        }
+        
+        /* Styling for the decibel labels */
+        .tick-label {
+            position: absolute;
+            color: #a0aec0; /* Tailwind gray-500 */
+            font-size: 11px;
+            width: 30px;
+            text-align: center;
+            transform: translate(-50%, -50%); /* Center the label on its coordinate */
+        }
+
+        /* EQ Curve Visualizer Styles */
+        #visualizer-container {
+            background: linear-gradient(to bottom, #1A202C, #2D3748);
+        }
+
+        .grid-line {
+            stroke: #4A5568;
+            stroke-width: 1;
+            stroke-dasharray: 2,3;
+        }
+
+        .axis-label {
+            fill: #A0AEC0;
+            font-size: 10px;
+        }
+
+        #eq-curve-path {
+            stroke: #D4AF37;
+            stroke-width: 3;
+            fill: none;
+            stroke-linejoin: round;
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 3px #D4AF37);
+        }
+    </style>
+</head>
+<body class="bg-gray-800 text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <div id="main-container" class="bg-gray-700 max-w-5xl w-full mx-auto p-6 sm:p-8 rounded-2xl shadow-2xl border-2 gold-border">
+        
+        <!-- Main Title -->
+        <h1 class="text-3xl sm:text-4xl font-bold text-center mb-6 sm:mb-8 gold-text tracking-wider">
+            The HIFI Harmonic Frequencizer 5000
+        </h1>
+
+        <!-- Controls: Dropdown and Description -->
+        <div class="max-w-md mx-auto mb-8">
+            <select id="preset-selector" class="w-full p-3 bg-gray-600 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus-gold-ring transition">
+                <option value="none" selected disabled>Select a Preset...</option>
+            </select>
+            <p id="preset-description" class="mt-4 text-center text-sm gold-text h-12 flex items-center justify-center">
+                Select a preset from the dropdown to see its EQ curve and description.
+            </p>
+        </div>
+
+        <!-- EQ Curve Visualizer -->
+        <div id="visualizer-container" class="w-full h-48 md:h-64 bg-gray-900 rounded-lg p-4 relative mt-4 mb-12 border border-gray-600">
+            <svg id="eq-svg" class="w-full h-full overflow-visible"></svg>
+        </div>
+
+
+        <!-- Equalizer Knobs Grid -->
+        <div id="eq-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-y-12 gap-x-6 text-center">
+            
+            <!-- Knob 1: 20 Hz -->
+            <div class="knob-container flex flex-col items-center" data-band="20" data-max-db="12">
+                <div class="font-bold">20 Hz</div>
+                <div class="text-sm gold-text">Sub-Bass</div>
+                <div class="relative w-[120px] h-[120px] flex items-center justify-center mt-8">
+                    <div class="knob-body w-full h-full bg-gray-800 rounded-full"></div>
+                    <div class="tick-container absolute w-full h-full"></div>
+                    <div class="knob-pointer absolute h-[50px] w-[3px] top-[10px] rounded-full" style="transform: rotate(0deg); transform-origin: bottom center; background-color: #D4AF37;"></div>
+                </div>
+                <div class="text-xs text-gray-300 mt-3">+/- 12dB</div>
+                <div class="db-display text-lg font-bold gold-text h-6 mt-1">0 dB</div>
+            </div>
+
+            <!-- Knob 2: 120 Hz -->
+            <div class="knob-container flex flex-col items-center" data-band="120" data-max-db="9">
+                <div class="font-bold">120 Hz</div>
+                <div class="text-sm gold-text">Bass</div>
+                <div class="relative w-[120px] h-[120px] flex items-center justify-center mt-8">
+                    <div class="knob-body w-full h-full bg-gray-800 rounded-full"></div>
+                    <div class="tick-container absolute w-full h-full"></div>
+                    <div class="knob-pointer absolute h-[50px] w-[3px] top-[10px] rounded-full" style="transform: rotate(0deg); transform-origin: bottom center; background-color: #D4AF37;"></div>
+                </div>
+                 <div class="text-xs text-gray-300 mt-3">+/- 9dB</div>
+                 <div class="db-display text-lg font-bold gold-text h-6 mt-1">0 dB</div>
+            </div>
+
+            <!-- Knob 3: 400 Hz -->
+            <div class="knob-container flex flex-col items-center" data-band="400" data-max-db="6">
+                <div class="font-bold">400 Hz</div>
+                <div class="text-sm gold-text">Lower Mids</div>
+                <div class="relative w-[120px] h-[120px] flex items-center justify-center mt-8">
+                    <div class="knob-body w-full h-full bg-gray-800 rounded-full"></div>
+                    <div class="tick-container absolute w-full h-full"></div>
+                    <div class="knob-pointer absolute h-[50px] w-[3px] top-[10px] rounded-full" style="transform: rotate(0deg); transform-origin: bottom center; background-color: #D4AF37;"></div>
+                </div>
+                 <div class="text-xs text-gray-300 mt-3">+/- 6dB</div>
+                 <div class="db-display text-lg font-bold gold-text h-6 mt-1">0 dB</div>
+            </div>
+
+            <!-- Knob 4: 2 kHz -->
+            <div class="knob-container flex flex-col items-center" data-band="2k" data-max-db="6">
+                <div class="font-bold">2 kHz</div>
+                <div class="text-sm gold-text">Presence</div>
+                <div class="relative w-[120px] h-[120px] flex items-center justify-center mt-8">
+                    <div class="knob-body w-full h-full bg-gray-800 rounded-full"></div>
+                    <div class="tick-container absolute w-full h-full"></div>
+                    <div class="knob-pointer absolute h-[50px] w-[3px] top-[10px] rounded-full" style="transform: rotate(0deg); transform-origin: bottom center; background-color: #D4AF37;"></div>
+                </div>
+                 <div class="text-xs text-gray-300 mt-3">+/- 6dB</div>
+                 <div class="db-display text-lg font-bold gold-text h-6 mt-1">0 dB</div>
+            </div>
+
+            <!-- Knob 5: 6 kHz -->
+            <div class="knob-container flex flex-col items-center" data-band="6k" data-max-db="9">
+                <div class="font-bold">6 kHz</div>
+                <div class="text-sm gold-text">Treble</div>
+                <div class="relative w-[120px] h-[120px] flex items-center justify-center mt-8">
+                    <div class="knob-body w-full h-full bg-gray-800 rounded-full"></div>
+                    <div class="tick-container absolute w-full h-full"></div>
+                    <div class="knob-pointer absolute h-[50px] w-[3px] top-[10px] rounded-full" style="transform: rotate(0deg); transform-origin: bottom center; background-color: #D4AF37;"></div>
+                </div>
+                 <div class="text-xs text-gray-300 mt-3">+/- 9dB</div>
+                 <div class="db-display text-lg font-bold gold-text h-6 mt-1">0 dB</div>
+            </div>
+
+            <!-- Knob 6: 16 kHz -->
+            <div class="knob-container flex flex-col items-center" data-band="16k" data-max-db="12">
+                <div class="font-bold">16 kHz</div>
+                <div class="text-sm gold-text">Air</div>
+                <div class="relative w-[120px] h-[120px] flex items-center justify-center mt-8">
+                    <div class="knob-body w-full h-full bg-gray-800 rounded-full"></div>
+                    <div class="tick-container absolute w-full h-full"></div>
+                    <div class="knob-pointer absolute h-[50px] w-[3px] top-[10px] rounded-full" style="transform: rotate(0deg); transform-origin: bottom center; background-color: #D4AF37;"></div>
+                </div>
+                 <div class="text-xs text-gray-300 mt-3">+/- 12dB</div>
+                 <div class="db-display text-lg font-bold gold-text h-6 mt-1">0 dB</div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DATA DEFINITIONS ---
+
+            const clockToDegrees = {
+                '7:30 o\'clock': -135, '8 o\'clock': -120, '8:30 o\'clock': -105, '9 o\'clock': -90,
+                '9:30 o\'clock': -75, '10 o\'clock': -60, '10:30 o\'clock': -45, '11 o\'clock': -30,
+                '11:30 o\'clock': -15, '12 o\'clock': 0, '12:30 o\'clock': 15, '1 o\'clock': 30,
+                '1:30 o\'clock': 45, '2 o\'clock': 60, '2:30 o\'clock': 75, '3 o\'clock': 90,
+                '3:30 o\'clock': 105, '4 o\'clock': 120, '4:30 o\'clock': 135,
+            };
+
+            const presets = {
+                'Fuller Bass & Warmth': { description: 'Adds mid-bass punch and warmth, respecting the deep extension of your SVS subwoofer.', knobs: { '20': '12:30 o\'clock', '120': '1:30 o\'clock', '400': '12:30 o\'clock', '2k': '11:30 o\'clock', '6k': '12 o\'clock', '16k': '11:30 o\'clock' }},
+                'Energetic & Forward': { description: 'Brings vocals and lead instruments to the front without harshness. Perfect for the detailed KEF and Definitive mids.', knobs: { '20': '11:30 o\'clock', '120': '12 o\'clock', '400': '1 o\'clock', '2k': '1:30 o\'clock', '6k': '1 o\'clock', '16k': '12:30 o\'clock' }},
+                'Crisp Vocals & Detail': { description: 'Enhances vocal clarity and instrumental detail by focusing on upper-mid frequencies, leveraging your system\'s smooth treble.', knobs: { '20': '12 o\'clock', '120': '11:30 o\'clock', '400': '11:30 o\'clock', '2k': '1 o\'clock', '6k': '1:30 o\'clock', '16k': '1 o\'clock' }},
+                'Smooth & Relaxed': { description: 'Gently tames the upper frequencies for a non-fatiguing, laid-back listen, ideal for extended sessions.', knobs: { '20': '12:30 o\'clock', '120': '12:30 o\'clock', '400': '12 o\'clock', '2k': '11 o\'clock', '6k': '11 o\'clock', '16k': '10:30 o\'clock' }},
+                'Late Night Listening': { description: 'A refined loudness curve (Fletcher-Munson) that adds fullness at low volumes without creating boominess.', knobs: { '20': '1:30 o\'clock', '120': '1 o\'clock', '400': '12 o\'clock', '2k': '12:30 o\'clock', '6k': '1 o\'clock', '16k': '1:30 o\'clock' }},
+                'genres': { type: 'separator', label: '--- GENRES (Calibrated For Your System) ---' },
+                'Rock': { description: 'Adds punch to drums and crunch to guitars. The sub-bass is slightly tamed to ensure bass lines remain tight and fast.', knobs: { '20': '11:30 o\'clock', '120': '1:30 o\'clock', '400': '11 o\'clock', '2k': '12:30 o\'clock', '6k': '1:30 o\'clock', '16k': '12 o\'clock' }},
+                'Pop': { description: 'Clean, deep sub-bass and crisp, clear highs for a modern, polished sound that shines on your system.', knobs: { '20': '1 o\'clock', '120': '1 o\'clock', '400': '12 o\'clock', '2k': '1 o\'clock', '6k': '1:30 o\'clock', '16k': '1:30 o\'clock' }},
+                'Jazz': { description: 'A focus on natural timbre and instrumental clarity. A very light touch to let the recording breathe, leaving the bass to your calibrated sub.', knobs: { '20': '12 o\'clock', '120': '12:30 o\'clock', '400': '1 o\'clock', '2k': '1 o\'clock', '6k': '12:30 o\'clock', '16k': '12 o\'clock' }},
+                'Metal': { description: 'A controlled mid-scoop for powerful, chugging guitars, with tight, fast bass that doesn\'t get muddy.', knobs: { '20': '12:30 o\'clock', '120': '1 o\'clock', '400': '10 o\'clock', '2k': '11 o\'clock', '6k': '2 o\'clock', '16k': '1 o\'clock' }},
+                'Acoustic': { description: 'Brings out natural body and string detail. A slight sub-bass cut tightens the sound and prevents unwanted room boom.', knobs: { '20': '11 o\'clock', '120': '11:30 o\'clock', '400': '12:30 o\'clock', '2k': '1 o\'clock', '6k': '1 o\'clock', '16k': '12:30 o\'clock' }},
+                'Classical': { description: 'A pure setting to respect the recording\'s dynamics, with a hint of "air." Your sub will handle the low-end as the conductor intended.', knobs: { '20': '12 o\'clock', '120': '12 o\'clock', '400': '12 o\'clock', '2k': '12:30 o\'clock', '6k': '12:30 o\'clock', '16k': '1 o\'clock' }},
+                'Electronic/Dance': { description: 'Deep, powerful sub-bass from your SVS, shaped by the EQ for impact, with exciting highs.', knobs: { '20': '1:30 o\'clock', '120': '1:30 o\'clock', '400': '11:30 o\'clock', '2k': '12:30 o\'clock', '6k': '1:30 o\'clock', '16k': '2 o\'clock' }},
+                'R&B': { description: 'Smooth, deep bass, warm and present vocals, and crisp hi-hats for a soulful, engaging sound.', knobs: { '20': '1 o\'clock', '120': '1:30 o\'clock', '400': '12 o\'clock', '2k': '1 o\'clock', '6k': '1:30 o\'clock', '16k': '12:30 o\'clock' }},
+                'Rap': { description: 'Hard-hitting bass that remains tight and articulate, ensuring lyrical clarity is never compromised by the sub.', knobs: { '20': '1:30 o\'clock', '120': '1 o\'clock', '400': '12 o\'clock', '2k': '1:30 o\'clock', '6k': '1 o\'clock', '16k': '12 o\'clock' }},
+                'Country': { description: 'Prioritizes vocal clarity and the natural twang of guitars, with a balanced and honest presentation.', knobs: { '20': '12 o\'clock', '120': '12:30 o\'clock', '400': '1 o\'clock', '2k': '1:30 o\'clock', '6k': '1 o\'clock', '16k': '12 o\'clock' }},
+                'Funk & Soul': { description: 'Punchy, articulate bass lines and crisp, detailed horns and cymbals to drive the rhythm.', knobs: { '20': '1 o\'clock', '120': '2 o\'clock', '400': '11:30 o\'clock', '2k': '1 o\'clock', '6k': '1:30 o\'clock', '16k': '1 o\'clock' }},
+                'special': { type: 'separator', label: '--- SPECIAL ---' },
+                'Fuzz Muff': { description: 'A heavy, saturated sound, refined for clarity and tight bass response on your specific system.', knobs: { '20': '2:30 o\'clock', '120': '2:30 o\'clock', '400': '9 o\'clock', '2k': '10 o\'clock', '6k': '1 o\'clock', '16k': '11 o\'clock' }},
+                'Vibe-o-Matic 5000': { description: 'A unique harmonic coloration with alternating boosts and cuts, now tuned to be musical and not fatiguing.', knobs: { '20': '10:30 o\'clock', '120': '2 o\'clock', '400': '10 o\'clock', '2k': '2:30 o\'clock', '6k': '10 o\'clock', '16k': '1:30 o\'clock' }}
+            };
+            
+            // --- DOM ELEMENT REFERENCES ---
+            const presetSelector = document.getElementById('preset-selector');
+            const presetDescription = document.getElementById('preset-description');
+            const knobContainers = document.querySelectorAll('.knob-container');
+            const pointers = {}; 
+            const dbDisplays = {};
+            const svg = d3.select("#eq-svg");
+            
+            // --- EQ CURVE SETUP ---
+            let path;
+            let xScale, yScale, lineGenerator;
+
+            function setupVisualizer() {
+                const container = document.getElementById('visualizer-container');
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                svg.attr('width', width).attr('height', height);
+
+                xScale = d3.scaleLog().domain([20, 20000]).range([0, width]);
+                yScale = d3.scaleLinear().domain([-12, 12]).range([height, 0]);
+
+                // Draw grid lines and labels
+                svg.selectAll("*").remove(); // Clear previous
+                const yTicks = [-12, -9, -6, 0, 6, 9, 12];
+                yTicks.forEach(tick => {
+                    svg.append("line")
+                       .attr("class", "grid-line")
+                       .attr("x1", 0).attr("x2", width)
+                       .attr("y1", yScale(tick)).attr("y2", yScale(tick));
+                    svg.append("text").attr("class", "axis-label")
+                       .attr("x", 5).attr("y", yScale(tick) - 4)
+                       .text(tick + " dB");
+                });
+
+                const xTicks = [20, 100, 1000, 10000, 20000];
+                 xTicks.forEach(tick => {
+                    svg.append("text").attr("class", "axis-label")
+                       .attr("x", xScale(tick)).attr("y", height - 5)
+                       .attr("text-anchor", "middle")
+                       .text(tick < 1000 ? tick + 'Hz' : (tick / 1000) + 'kHz');
+                });
+
+                lineGenerator = d3.line()
+                    .x(d => xScale(d.freq))
+                    .y(d => yScale(d.db))
+                    .curve(d3.curveCatmullRom);
+
+                path = svg.append("path").attr("id", "eq-curve-path");
+            }
+
+            // --- INITIALIZATION ---
+            knobContainers.forEach(container => {
+                const band = container.dataset.band;
+                pointers[band] = container.querySelector('.knob-pointer');
+                dbDisplays[band] = container.querySelector('.db-display');
+            });
+
+            Object.keys(presets).forEach(key => {
+                const option = document.createElement('option');
+                if (presets[key].type === 'separator') {
+                    option.disabled = true;
+                    option.textContent = presets[key].label;
+                } else {
+                    option.value = key;
+                    option.textContent = key;
+                }
+                presetSelector.appendChild(option);
+            });
+            
+            knobContainers.forEach(container => {
+                const tickContainer = container.querySelector('.tick-container');
+                const maxDb = parseInt(container.dataset.maxDb, 10);
+                generateTicks(tickContainer, maxDb);
+            });
+
+            setupVisualizer();
+            applyPreset('none'); // Draw initial flat line
+            window.addEventListener('resize', () => {
+                setupVisualizer();
+                applyPreset(presetSelector.value);
+            });
+
+
+            // --- FUNCTIONS ---
+            
+            function generateTicks(container, maxDb) {
+                const totalAngleRange = 270; 
+                const anglePerDb = totalAngleRange / (maxDb * 2);
+
+                for (let db = 1; db <= maxDb; db++) {
+                    const angle = db * anglePerDb;
+                    if (Math.abs(angle).toFixed(1) !== '90.0') {
+                        createTick(container, angle, false);
+                        createTick(container, -angle, false);
+                    }
+                }
+                
+                createTick(container, 0, true, '0');
+                const posDbValue = Math.round((90 / 135) * maxDb);
+                createTick(container, 90, true, `+${posDbValue}`);
+                const negDbValue = -Math.round((90 / 135) * maxDb);
+                createTick(container, -90, true, `${negDbValue}`);
+            }
+
+            function createTick(container, angle, isProminent, labelText = null) {
+                if (angle > 135 || angle < -135) return;
+
+                const tick = document.createElement('div');
+                tick.classList.add('tick');
+                if (isProminent) tick.classList.add('prominent');
+                
+                const height = isProminent ? '14px' : '8px';
+                const width = isProminent ? '2px' : '1px';
+                
+                tick.style.cssText = `
+                    width: ${width}; height: ${height}; position: absolute; top: 0; left: 50%;
+                    transform: translateX(-50%) rotate(${angle}deg);
+                    transform-origin: 0 60px;
+                `;
+                container.appendChild(tick);
+
+                if (labelText) {
+                    const label = document.createElement('div');
+                    label.classList.add('tick-label');
+                    label.textContent = labelText;
+                    
+                    const labelRadius = 78;
+                    const labelAngleRad = (angle - 90) * (Math.PI / 180);
+                    const knobCenterX = 60;
+                    const knobCenterY = 60;
+                    const x = knobCenterX + labelRadius * Math.cos(labelAngleRad);
+                    const y = knobCenterY + labelRadius * Math.sin(labelAngleRad);
+                    
+                    label.style.left = `${x}px`;
+                    label.style.top = `${y}px`;
+                    container.appendChild(label);
+                }
+            }
+
+            /**
+             * Applies a preset's settings to the UI, including pointer rotation and dB display.
+             * @param {string} presetKey - The key of the preset to apply.
+             */
+            function applyPreset(presetKey) {
+                const dbValues = {};
+                
+                if (presetKey === 'none' || !presets[presetKey]) {
+                    presetDescription.textContent = 'Select a preset from the dropdown to see its EQ curve and description.';
+                    knobContainers.forEach(c => {
+                        const band = c.dataset.band;
+                        pointers[band].style.transform = `rotate(0deg)`;
+                        dbDisplays[band].textContent = '0 dB';
+                        dbValues[band] = 0;
+                    });
+                } else {
+                     const preset = presets[presetKey];
+                    presetDescription.textContent = preset.description;
+                    
+                    Object.keys(preset.knobs).forEach(band => {
+                        const clockPosition = preset.knobs[band];
+                        const degrees = clockToDegrees[clockPosition];
+                        
+                        if (pointers[band] && degrees !== undefined) {
+                            pointers[band].style.transform = `rotate(${degrees}deg)`;
+
+                            const container = pointers[band].closest('.knob-container');
+                            const maxDb = parseInt(container.dataset.maxDb, 10);
+                            const totalAngleRange = 270;
+                            const anglePerDb = totalAngleRange / (maxDb * 2);
+                            const currentDb = Math.round(degrees / anglePerDb);
+                            dbValues[band] = currentDb;
+                            
+                            let dbText = `${currentDb} dB`;
+                            if (currentDb > 0) dbText = `+${currentDb} dB`;
+                            
+                            if (dbDisplays[band]) dbDisplays[band].textContent = dbText;
+                        }
+                    });
+                }
+                drawCurve(dbValues);
+            }
+
+            /**
+             * Draws the EQ curve in the SVG visualizer.
+             * @param {object} dbValues - An object with band keys and their dB values.
+             */
+            function drawCurve(dbValues) {
+                const points = [
+                    { freq: 20, db: dbValues['20'] || 0 },
+                    { freq: 120, db: dbValues['120'] || 0 },
+                    { freq: 400, db: dbValues['400'] || 0 },
+                    { freq: 2000, db: dbValues['2k'] || 0 },
+                    { freq: 6000, db: dbValues['6k'] || 0 },
+                    { freq: 16000, db: dbValues['16k'] || 0 }
+                ];
+
+                path
+                    .datum(points)
+                    .transition()
+                    .duration(400)
+                    .ease(d3.easeCubicInOut)
+                    .attr("d", lineGenerator);
+            }
+
+            // --- EVENT LISTENERS ---
+            presetSelector.addEventListener('change', (e) => {
+                applyPreset(e.target.value);
+            });
+        });
+    </script>
+</body>
+</html>
