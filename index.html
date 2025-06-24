@@ -91,7 +91,7 @@
 </head>
 <body class="bg-gray-800 text-gray-200 flex items-center justify-center min-h-screen p-4">
 
-    <div id="main-container" class="bg-gray-700 max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8 rounded-2xl shadow-2xl border-2 gold-border">
+    <div id="main-container" class="bg-gray-700 max-w-5xl w-full mx-auto p-6 sm:p-8 rounded-2xl shadow-2xl border-2 gold-border">
         
         <!-- Main Title -->
         <h1 class="text-3xl sm:text-4xl font-bold text-center mb-6 sm:mb-8 gold-text tracking-wider">
@@ -109,13 +109,13 @@
         </div>
 
         <!-- EQ Curve Visualizer -->
-        <div id="visualizer-container" class="w-full h-48 md:h-64 bg-gray-900 rounded-lg p-2 md:p-4 relative mt-4 mb-12 border border-gray-600">
-            <svg id="eq-svg" class="w-full h-full"></svg>
+        <div id="visualizer-container" class="w-full h-48 md:h-64 bg-gray-900 rounded-lg p-4 relative mt-4 mb-12 border border-gray-600">
+            <svg id="eq-svg" class="w-full h-full overflow-visible"></svg>
         </div>
 
 
         <!-- Equalizer Knobs Grid -->
-        <div id="eq-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-y-12 gap-x-4 sm:gap-x-8 lg:gap-x-12 text-center">
+        <div id="eq-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-y-12 gap-x-6 text-center">
             
             <!-- Knob 1: 20 Hz -->
             <div class="knob-container flex flex-col items-center" data-band="20" data-max-db="12">
@@ -248,36 +248,31 @@
             let xScale, yScale, lineGenerator;
 
             function setupVisualizer() {
-                const visContainer = document.getElementById('visualizer-container');
-                const margin = {top: 10, right: 20, bottom: 25, left: 35};
-                const width = visContainer.clientWidth - margin.left - margin.right;
-                const height = visContainer.clientHeight - margin.top - margin.bottom;
-
-                svg.selectAll("*").remove(); // Clear previous
-                
-                const g = svg.append("g")
-                           .attr("transform", `translate(${margin.left},${margin.top})`);
+                const container = document.getElementById('visualizer-container');
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                svg.attr('width', width).attr('height', height);
 
                 xScale = d3.scaleLog().domain([20, 20000]).range([0, width]);
                 yScale = d3.scaleLinear().domain([-12, 12]).range([height, 0]);
 
                 // Draw grid lines and labels
+                svg.selectAll("*").remove(); // Clear previous
                 const yTicks = [-12, -9, -6, 0, 6, 9, 12];
                 yTicks.forEach(tick => {
-                    g.append("line")
+                    svg.append("line")
                        .attr("class", "grid-line")
                        .attr("x1", 0).attr("x2", width)
                        .attr("y1", yScale(tick)).attr("y2", yScale(tick));
-                    g.append("text").attr("class", "axis-label")
-                       .attr("x", -5).attr("y", yScale(tick) + 3)
-                       .attr("text-anchor", "end")
-                       .text(tick);
+                    svg.append("text").attr("class", "axis-label")
+                       .attr("x", 5).attr("y", yScale(tick) - 4)
+                       .text(tick + " dB");
                 });
 
                 const xTicks = [20, 100, 1000, 10000, 20000];
                  xTicks.forEach(tick => {
-                    g.append("text").attr("class", "axis-label")
-                       .attr("x", xScale(tick)).attr("y", height + 15)
+                    svg.append("text").attr("class", "axis-label")
+                       .attr("x", xScale(tick)).attr("y", height - 5)
                        .attr("text-anchor", "middle")
                        .text(tick < 1000 ? tick + 'Hz' : (tick / 1000) + 'kHz');
                 });
@@ -287,7 +282,7 @@
                     .y(d => yScale(d.db))
                     .curve(d3.curveCatmullRom);
 
-                path = g.append("path").attr("id", "eq-curve-path");
+                path = svg.append("path").attr("id", "eq-curve-path");
             }
 
             // --- INITIALIZATION ---
