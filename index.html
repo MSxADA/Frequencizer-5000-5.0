@@ -416,4 +416,40 @@
                             let dbText = `${currentDb} dB`;
                             if (currentDb > 0) dbText = `+${currentDb} dB`;
                             
-                            if (dbDisplays[b
+                            if (dbDisplays[band]) dbDisplays[band].textContent = dbText;
+                        }
+                    });
+                }
+                drawCurve(dbValues);
+            }
+
+            /**
+             * Draws the EQ curve in the SVG visualizer.
+             * @param {object} dbValues - An object with band keys and their dB values.
+             */
+            function drawCurve(dbValues) {
+                const points = [
+                    { freq: 20, db: dbValues['20'] || 0 },
+                    { freq: 120, db: dbValues['120'] || 0 },
+                    { freq: 400, db: dbValues['400'] || 0 },
+                    { freq: 2000, db: dbValues['2k'] || 0 },
+                    { freq: 6000, db: dbValues['6k'] || 0 },
+                    { freq: 16000, db: dbValues['16k'] || 0 }
+                ];
+
+                path
+                    .datum(points)
+                    .transition()
+                    .duration(400)
+                    .ease(d3.easeCubicInOut)
+                    .attr("d", lineGenerator);
+            }
+
+            // --- EVENT LISTENERS ---
+            presetSelector.addEventListener('change', (e) => {
+                applyPreset(e.target.value);
+            });
+        });
+    </script>
+</body>
+</html>
