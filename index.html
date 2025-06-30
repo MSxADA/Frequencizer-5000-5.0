@@ -91,7 +91,7 @@
 </head>
 <body class="bg-gray-800 text-gray-200 flex items-center justify-center min-h-screen p-4">
 
-    <div id="main-container" class="bg-gray-700 max-w-5xl w-full mx-auto p-6 sm:p-8 rounded-2xl shadow-2xl border-2 gold-border">
+    <div id="main-container" class="bg-gray-700 max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8 rounded-2xl shadow-2xl border-2 gold-border">
         
         <!-- Main Title -->
         <h1 class="text-3xl sm:text-4xl font-bold text-center mb-6 sm:mb-8 gold-text tracking-wider">
@@ -109,13 +109,13 @@
         </div>
 
         <!-- EQ Curve Visualizer -->
-        <div id="visualizer-container" class="w-full h-48 md:h-64 bg-gray-900 rounded-lg p-4 relative mt-4 mb-12 border border-gray-600">
-            <svg id="eq-svg" class="w-full h-full overflow-visible"></svg>
+        <div id="visualizer-container" class="w-full h-48 md:h-64 bg-gray-900 rounded-lg p-2 md:p-4 relative mt-4 mb-12 border border-gray-600">
+            <svg id="eq-svg" class="w-full h-full"></svg>
         </div>
 
 
         <!-- Equalizer Knobs Grid -->
-        <div id="eq-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-y-12 gap-x-6 text-center">
+        <div id="eq-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-y-12 gap-x-4 sm:gap-x-8 lg:gap-x-12 text-center">
             
             <!-- Knob 1: 20 Hz -->
             <div class="knob-container flex flex-col items-center" data-band="20" data-max-db="12">
@@ -230,6 +230,7 @@
                 'Rap': { description: 'Hard-hitting bass that remains tight and articulate, ensuring lyrical clarity is never compromised.', knobs: { '20': '1:30 o\'clock', '120': '1 o\'clock', '400': '12 o\'clock', '2k': '1:30 o\'clock', '6k': '1 o\'clock', '16k': '12 o\'clock' }},
                 'Country': { description: 'Prioritizes vocal clarity and the natural twang of guitars, with a balanced and honest presentation.', knobs: { '20': '12 o\'clock', '120': '12:30 o\'clock', '400': '1 o\'clock', '2k': '1:30 o\'clock', '6k': '1 o\'clock', '16k': '12 o\'clock' }},
                 'Funk & Soul': { description: 'Punchy, articulate bass lines and crisp, detailed horns and cymbals to drive the rhythm.', knobs: { '20': '1 o\'clock', '120': '2 o\'clock', '400': '11:30 o\'clock', '2k': '1 o\'clock', '6k': '1:30 o\'clock', '16k': '1 o\'clock' }},
+                'Reggae': { description: 'Deep, rounded bass and crisp highs for that classic island rhythm.', knobs: { '20': '2:30 o\'clock', '120': '2 o\'clock', '400': '11 o\'clock', '2k': '11:30 o\'clock', '6k': '1:30 o\'clock', '16k': '1:30 o\'clock' }},
                 'special': { type: 'separator', label: '--- SPECIAL ---' },
                 'Fuzz Muff': { description: 'A heavy, saturated sound, refined for clarity and tight bass response.', knobs: { '20': '2:30 o\'clock', '120': '2:30 o\'clock', '400': '9 o\'clock', '2k': '10 o\'clock', '6k': '1 o\'clock', '16k': '11 o\'clock' }},
                 'Vibe-o-Matic 5000': { description: 'A unique harmonic coloration with alternating boosts and cuts for a wavy, vintage feel.', knobs: { '20': '10:30 o\'clock', '120': '2 o\'clock', '400': '10 o\'clock', '2k': '2:30 o\'clock', '6k': '10 o\'clock', '16k': '1:30 o\'clock' }}
@@ -248,31 +249,36 @@
             let xScale, yScale, lineGenerator;
 
             function setupVisualizer() {
-                const container = document.getElementById('visualizer-container');
-                const width = container.clientWidth;
-                const height = container.clientHeight;
-                svg.attr('width', width).attr('height', height);
+                const visContainer = document.getElementById('visualizer-container');
+                const margin = {top: 10, right: 20, bottom: 25, left: 35};
+                const width = visContainer.clientWidth - margin.left - margin.right;
+                const height = visContainer.clientHeight - margin.top - margin.bottom;
+
+                svg.selectAll("*").remove(); // Clear previous
+                
+                const g = svg.append("g")
+                           .attr("transform", `translate(${margin.left},${margin.top})`);
 
                 xScale = d3.scaleLog().domain([20, 20000]).range([0, width]);
                 yScale = d3.scaleLinear().domain([-12, 12]).range([height, 0]);
 
                 // Draw grid lines and labels
-                svg.selectAll("*").remove(); // Clear previous
                 const yTicks = [-12, -9, -6, 0, 6, 9, 12];
                 yTicks.forEach(tick => {
-                    svg.append("line")
+                    g.append("line")
                        .attr("class", "grid-line")
                        .attr("x1", 0).attr("x2", width)
                        .attr("y1", yScale(tick)).attr("y2", yScale(tick));
-                    svg.append("text").attr("class", "axis-label")
-                       .attr("x", 5).attr("y", yScale(tick) - 4)
-                       .text(tick + " dB");
+                    g.append("text").attr("class", "axis-label")
+                       .attr("x", -5).attr("y", yScale(tick) + 3)
+                       .attr("text-anchor", "end")
+                       .text(tick);
                 });
 
                 const xTicks = [20, 100, 1000, 10000, 20000];
                  xTicks.forEach(tick => {
-                    svg.append("text").attr("class", "axis-label")
-                       .attr("x", xScale(tick)).attr("y", height - 5)
+                    g.append("text").attr("class", "axis-label")
+                       .attr("x", xScale(tick)).attr("y", height + 15)
                        .attr("text-anchor", "middle")
                        .text(tick < 1000 ? tick + 'Hz' : (tick / 1000) + 'kHz');
                 });
@@ -282,7 +288,7 @@
                     .y(d => yScale(d.db))
                     .curve(d3.curveCatmullRom);
 
-                path = svg.append("path").attr("id", "eq-curve-path");
+                path = g.append("path").attr("id", "eq-curve-path");
             }
 
             // --- INITIALIZATION ---
@@ -410,40 +416,4 @@
                             let dbText = `${currentDb} dB`;
                             if (currentDb > 0) dbText = `+${currentDb} dB`;
                             
-                            if (dbDisplays[band]) dbDisplays[band].textContent = dbText;
-                        }
-                    });
-                }
-                drawCurve(dbValues);
-            }
-
-            /**
-             * Draws the EQ curve in the SVG visualizer.
-             * @param {object} dbValues - An object with band keys and their dB values.
-             */
-            function drawCurve(dbValues) {
-                const points = [
-                    { freq: 20, db: dbValues['20'] || 0 },
-                    { freq: 120, db: dbValues['120'] || 0 },
-                    { freq: 400, db: dbValues['400'] || 0 },
-                    { freq: 2000, db: dbValues['2k'] || 0 },
-                    { freq: 6000, db: dbValues['6k'] || 0 },
-                    { freq: 16000, db: dbValues['16k'] || 0 }
-                ];
-
-                path
-                    .datum(points)
-                    .transition()
-                    .duration(400)
-                    .ease(d3.easeCubicInOut)
-                    .attr("d", lineGenerator);
-            }
-
-            // --- EVENT LISTENERS ---
-            presetSelector.addEventListener('change', (e) => {
-                applyPreset(e.target.value);
-            });
-        });
-    </script>
-</body>
-</html>
+                            if (dbDisplays[b
